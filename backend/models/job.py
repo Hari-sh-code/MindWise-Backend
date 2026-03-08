@@ -9,10 +9,7 @@ from database import Base
 
 
 class JobApplication(Base):
-    """
-    Represents a job application.
-    Contains job details, extracted description, and AI analysis results.
-    """
+
     __tablename__ = "job_applications"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -26,9 +23,7 @@ class JobApplication(Base):
     status = Column(String(50), default="pending")  # pending, analyzed, applied, rejected
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships
     user = relationship("User", back_populates="job_applications")
-    reference_notes = relationship("Note", back_populates="job", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<JobApplication(id={self.id}, company='{self.company_name}', title='{self.job_title}')>"

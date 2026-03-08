@@ -5,14 +5,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from core.config import settings
+import logging
 
 # Create SQLAlchemy engine
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20
+    pool_size=3,
+    max_overflow=0,
 )
+
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -20,12 +22,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base class for models
 Base = declarative_base()
 
-
 def get_db():
-    """
-    Dependency for getting database sessions.
-    Yields a database session and ensures it's closed after use.
-    """
+
     db = SessionLocal()
     try:
         yield db
@@ -34,9 +32,9 @@ def get_db():
 
 
 def init_db():
-    """
-    Initialize database tables.
-    Creates all tables defined in models.
-    """
-    from models import job, note, user  # Import models to register them
-    Base.metadata.create_all(bind=engine)
+    try:
+        from models import job, user
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        logging.error(f"Database init failed: {e}")
+        

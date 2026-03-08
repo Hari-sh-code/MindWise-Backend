@@ -26,7 +26,7 @@ class AnalyzeJobRequest(BaseModel):
     job_title: str
     job_description: str
     resume_drive_link: str
-    user_notes: Optional[str] = None  # Optional notes about company (NOT sent to AI)
+    user_notes: Optional[str] = None  
 
 
 class AnalyzeJobResponse(BaseModel):
@@ -43,31 +43,15 @@ async def analyze_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Analyze job description and resume for matching insights.
-    
-    Requires authentication.
-    
-    This endpoint:
-    1. Accepts job description text directly
-    2. Extracts resume text from Google Drive link
-    3. Sends ONLY job description and resume to AI (NO notes)
-    4. Stores the job application with AI analysis in database
-    5. Associates job with authenticated user
-    6. Returns analysis results
-    
-    IMPORTANT: User notes are NOT used in AI analysis.
-    """
+
     try:
-        # Step 1: Use provided job description
+
         logger.info(f"Using provided job description: {len(request.job_description)} characters")
         
-        # Step 2: Extract resume text
         logger.info(f"Extracting resume from: {request.resume_drive_link}")
         resume_text = resume_extractor.extract(request.resume_drive_link)
         logger.info(f"Extracted resume: {len(resume_text)} characters")
         
-        # Step 3: Perform AI analysis (ONLY job description and resume)
         logger.info("Performing AI analysis...")
         analysis = ai_agent.analyze_job_resume_match(
             job_description=request.job_description,
@@ -75,14 +59,13 @@ async def analyze_job(
         )
         logger.info(f"AI analysis completed with score: {analysis.match_score}")
         
-        # Step 4: Save to database
         job_application = JobApplication(
-            user_id=current_user.id,  # Associate with authenticated user
+            user_id=current_user.id,  
             company_name=request.company_name,
             job_title=request.job_title,
             job_description=request.job_description,
             resume_drive_link=request.resume_drive_link,
-            user_notes=request.user_notes,  # Stored in DB, NOT sent to AI
+            user_notes=request.user_notes,  
             ai_analysis=analysis.model_dump(),
             status="analyzed"
         )
@@ -93,7 +76,6 @@ async def analyze_job(
         
         logger.info(f"Saved job application with ID: {job_application.id}")
         
-        # Step 5: Return response
         return AnalyzeJobResponse(
             job_id=job_application.id,
             company_name=job_application.company_name,

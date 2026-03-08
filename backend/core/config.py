@@ -7,25 +7,24 @@ from typing import List
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
 
-    # Database
-    user: str
-    password: str
-    host: str
-    port: str
-    dbname: str
+    DB_USER: str
+    DB_PASSWORD: str
+    DB_HOST: str
+    DB_PORT: int
+    DB_NAME: str
 
-    # Google Gemini API
     GEMINI_API_KEY: str
 
-    # CORS (comma-separated origins)
     ALLOWED_ORIGINS: str
 
-    # Application
     APP_NAME: str = "MindWise"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
+
+    SECRET_KEY : str
+    ALGORITHM : str
+    ACCESS_TOKEN_EXPIRE_MINUTES : int
 
     class Config:
         env_file = ".env"
@@ -33,7 +32,7 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     @property
     def allowed_origins_list(self) -> List[str]:

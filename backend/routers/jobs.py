@@ -25,26 +25,16 @@ async def list_jobs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    List all job applications for the current user with pagination.
-    
-    Query Parameters:
-    - page: Page number (default: 1)
-    - page_size: Items per page (default: 10, max: 100)
-    - status: Filter by status (optional)
-    """
+
     try:
-        # Build query - filter by current user
+
         query = db.query(JobApplication).filter(JobApplication.user_id == current_user.id)
         
-        # Apply status filter if provided
         if status:
             query = query.filter(JobApplication.status == status)
         
-        # Get total count
         total = query.count()
         
-        # Apply pagination
         offset = (page - 1) * page_size
         jobs = query.order_by(JobApplication.created_at.desc()).offset(offset).limit(page_size).all()
         
@@ -66,9 +56,7 @@ async def get_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Get a specific job application by ID for the current user.
-    """
+
     job = db.query(JobApplication).filter(
         JobApplication.id == job_id,
         JobApplication.user_id == current_user.id
@@ -87,14 +75,7 @@ async def update_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Update a job application for the current user.
-    
-    Can update:
-    - job_title
-    - company_name
-    - status
-    """
+
     job = db.query(JobApplication).filter(
         JobApplication.id == job_id,
         JobApplication.user_id == current_user.id
@@ -103,7 +84,6 @@ async def update_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job application not found")
     
-    # Update fields if provided
     update_data = job_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(job, field, value)
@@ -120,10 +100,7 @@ async def delete_job(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Delete a job application for the current user.
-    Also deletes all associated notes (cascade).
-    """
+
     job = db.query(JobApplication).filter(
         JobApplication.id == job_id,
         JobApplication.user_id == current_user.id

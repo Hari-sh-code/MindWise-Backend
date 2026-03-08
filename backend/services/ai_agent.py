@@ -17,10 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class AIAgent:
-    """AI Agent for job-resume matching using Google Gemini."""
 
     def __init__(self):
-        """Initialize Gemini client."""
+
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
         self.model_name = "gemini-3-flash-preview"
 
@@ -29,18 +28,10 @@ class AIAgent:
         job_description: str,
         resume_text: str
     ) -> AIAnalysisResult:
-        """
-        Analyze job description and resume.
-
-        CRITICAL:
-        - ONLY job_description & resume_text
-        - NO notes, NO metadata
-        """
 
         try:
             prompt = self._build_analysis_prompt(job_description, resume_text)
 
-            # ✅ CORRECT Gemini call (no generation_config)
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt
@@ -67,7 +58,6 @@ class AIAgent:
             raise ValueError(f"AI analysis failed: {str(e)}")
 
     def _build_analysis_prompt(self, job_description: str, resume_text: str) -> str:
-        """Build Gemini analysis prompt."""
 
         return f"""
 You are an expert ATS analyzer and career advisor.
@@ -105,6 +95,4 @@ Rules:
 - Preparation tips should focus on Techinical HR Interview like what are the key topics should focus (Mentioned in Job Description)
 """
 
-
-# Singleton instance
 ai_agent = AIAgent()
