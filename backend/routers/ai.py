@@ -26,7 +26,6 @@ class AnalyzeJobRequest(BaseModel):
     job_title: str
     job_description: str
     resume_drive_link: str
-    user_notes: Optional[str] = None  
 
 
 class AnalyzeJobResponse(BaseModel):
@@ -65,7 +64,6 @@ async def analyze_job(
             job_title=request.job_title,
             job_description=request.job_description,
             resume_drive_link=request.resume_drive_link,
-            user_notes=request.user_notes,  
             ai_analysis=analysis.model_dump(),
             status="analyzed"
         )

@@ -18,9 +18,8 @@ class JobApplication(Base):
     job_title = Column(String(255), nullable=False)
     job_description = Column(Text, nullable=False)
     resume_drive_link = Column(Text, nullable=False)
-    user_notes = Column(Text, nullable=True)  # User notes about company (NOT sent to AI)
-    ai_analysis = Column(JSON, nullable=True)  # Stores AI analysis results
-    status = Column(String(50), default="pending")  # pending, analyzed, applied, rejected
+    ai_analysis = Column(JSON, nullable=True)  
+    status = Column(String(50), default="pending") 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     user = relationship("User", back_populates="job_applications")

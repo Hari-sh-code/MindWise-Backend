@@ -33,7 +33,7 @@ def get_db():
 
 def init_db():
     try:
-        from models import job, user
+        from models import job, user, interview
         Base.metadata.create_all(bind=engine)
     except Exception as e:
         logging.error(f"Database init failed: {e}")

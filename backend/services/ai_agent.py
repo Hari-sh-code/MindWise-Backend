@@ -2,9 +2,6 @@
 AI Agent Service using Google Gemini (NEW SDK).
 Analyzes job descriptions and resumes to provide matching insights.
 
-IMPORTANT:
-- Uses ONLY job description and resume text
-- User notes are NEVER passed
 """
 
 from google import genai
@@ -93,6 +90,146 @@ Rules:
 - Be concise and accurate
 - Focus on skills, gaps, and preparation
 - Preparation tips should focus on Techinical HR Interview like what are the key topics should focus (Mentioned in Job Description)
+"""
+
+    def generate_improvement_plan(self, context: dict) -> dict:
+        """
+        Generate an AI-powered improvement plan based on interview feedback.
+        
+        Args:
+            context: Dictionary containing job_title, company_name, job_description,
+                    resume_text, ai_job_analysis, and interview_feedback
+        
+        Returns:
+            Dictionary with failure_stage, weak_areas, recommended_topics, 
+            practice_problems, and improvement_strategy
+        """
+        try:
+            prompt = self._build_improvement_plan_prompt(context)
+            
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt
+            )
+            
+            result_text = response.text.strip()
+            result_dict = json.loads(result_text)
+            
+            logger.info(
+                "Improvement plan generated | Weak areas identified: %s",
+                len(result_dict.get("weak_areas", []))
+            )
+            
+            return result_dict
+            
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON returned by Gemini: %s", response.text if 'response' in locals() else "Unknown")
+            raise ValueError("AI returned invalid JSON")
+        
+        except Exception as e:
+            logger.exception("Improvement plan generation failed")
+            raise ValueError(f"Improvement plan generation failed: {str(e)}")
+    
+    def _build_improvement_plan_prompt(self, context: dict) -> str:
+        """
+        Build the prompt for AI improvement plan generation.
+        
+        Args:
+            context: Dictionary with job and interview data
+        
+        Returns:
+            Formatted prompt string
+        """
+        job_title = context.get("job_title", "")
+        company_name = context.get("company_name", "")
+        job_description = context.get("job_description", "")
+        resume_text = context.get("resume_text", "")
+        ai_job_analysis = context.get("ai_job_analysis", {})
+        interview_feedback = context.get("interview_feedback", {})
+        
+        # Format rounds information
+        rounds_info = ""
+        for round_data in interview_feedback.get("rounds", []):
+            rounds_info += f"\n- Round {round_data.get('round_number')}: {round_data.get('type')} ({round_data.get('difficulty')})"
+            rounds_info += f"\n  Result: {round_data.get('result')}"
+            if round_data.get('topics'):
+                rounds_info += f"\n  Topics: {', '.join(round_data.get('topics', []))}"
+            if round_data.get('notes'):
+                rounds_info += f"\n  Notes: {round_data.get('notes')}"
+        
+        # Format AI analysis
+        ai_analysis_info = ""
+        if ai_job_analysis:
+            if isinstance(ai_job_analysis, dict):
+                ai_analysis_info = f"Job match score: {ai_job_analysis.get('match_score', 'N/A')}/100\n"
+                ai_analysis_info += f"Skill gaps identified: {', '.join(ai_job_analysis.get('skill_gap', []))}\n"
+                ai_analysis_info += f"Preparation tips: {', '.join(ai_job_analysis.get('preparation_tips', []))}"
+        
+        return f"""
+You are an expert career coach and interview preparation specialist.
+
+Analyze the interview feedback below and generate a personalized improvement plan.
+
+JOB DETAILS:
+- Position: {job_title}
+- Company: {company_name}
+
+JOB DESCRIPTION:
+{job_description}
+
+CANDIDATE'S RESUME:
+{resume_text}
+
+INITIAL AI JOB ANALYSIS:
+{ai_analysis_info}
+
+INTERVIEW FEEDBACK:
+- Total Rounds: {interview_feedback.get('total_rounds', 'N/A')}
+- Rounds Passed: {interview_feedback.get('rounds_passed', 'N/A')}
+- Rounds Failed: {interview_feedback.get('rounds_failed', 'N/A')}
+
+INTERVIEW ROUNDS DETAILS:{rounds_info}
+
+Based on the above information, generate a detailed improvement plan. Return ONLY valid JSON in this exact schema:
+
+{{
+  "failure_stage": "At which round/stage did the candidate primarily fail (e.g., 'Round 2: HR Interview')",
+  "weak_areas": [
+    {{
+      "area": "Specific weak area (e.g., 'System Design')",
+      "reason": "Why this was a weakness based on feedback"
+    }}
+  ],
+  "recommended_topics": [
+    "Topic 1 to learn/practice",
+    "Topic 2 to learn/practice",
+    "Topic 3 to learn/practice",
+    "Topic 4 to learn/practice",
+    "Topic 5 to learn/practice"
+  ],
+  "practice_problems": [
+    {{
+      "title": "Problem title",
+      "description": "Brief description of the problem",
+      "difficulty": "easy|medium|hard"
+    }}
+  ],
+  "improvement_strategy": [
+    "Step 1: Specific action for improvement",
+    "Step 2: Specific action for improvement",
+    "Step 3: Specific action for improvement",
+    "Step 4: Specific action for improvement",
+    "Step 5: Specific action for improvement"
+  ]
+}}
+
+Rules:
+- JSON ONLY (no markdown, no explanation)
+- Be specific and actionable
+- Focus on the candidate's actual weaknesses from the interview
+- Recommend topics directly related to failed rounds
+- Include at least 3 practice problems
+- Strategy should be implementable within 2-4 weeks
 """
 
 ai_agent = AIAgent()
