@@ -12,7 +12,6 @@ class JobBase(BaseModel):
     job_title: str
     job_description: str
     resume_drive_link: str
-    user_notes: Optional[str] = None
 
 
 class JobCreate(JobBase):
@@ -56,5 +55,4 @@ class JobUpdate(BaseModel):
     company_name: Optional[str] = None
     job_title: Optional[str] = None
     job_description: Optional[str] = None
-    user_notes: Optional[str] = None
     status: Optional[str] = None

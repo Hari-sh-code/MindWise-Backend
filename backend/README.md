@@ -118,7 +118,7 @@ App URLs:
   - `job_title`
   - `job_description` (manually pasted)
   - `resume_drive_link`
-  - `user_notes` (optional)
+  
 - Flow:
   1. Extract resume text from Google Drive PDF.
   2. Analyze match with Gemini.
