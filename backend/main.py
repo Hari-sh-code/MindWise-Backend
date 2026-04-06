@@ -9,7 +9,7 @@ import logging
 
 from core.config import settings
 from database import init_db
-from routers import ai, jobs, auth, interviews
+from routers import ai, jobs, auth, interviews, resume, profile
 
 # Configure logging
 logging.basicConfig(
@@ -59,6 +59,8 @@ app.include_router(auth.router)
 app.include_router(ai.router)
 app.include_router(jobs.router)
 app.include_router(interviews.router)
+app.include_router(resume.router)
+app.include_router(profile.router)
 
 
 @app.get("/", tags=["Health"])

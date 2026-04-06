@@ -90,6 +90,7 @@ Rules:
 - Be concise and accurate
 - Focus on skills, gaps, and preparation
 - Preparation tips should focus on Techinical HR Interview like what are the key topics should focus (Mentioned in Job Description)
+
 """
 
     def generate_improvement_plan(self, context: dict) -> dict:

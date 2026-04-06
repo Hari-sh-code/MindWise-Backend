@@ -1,8 +1,8 @@
 """
 Pydantic schemas for Job Application endpoints.
 """
-from pydantic import BaseModel, HttpUrl, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Any
 from datetime import datetime
 
 
@@ -21,7 +21,7 @@ class JobCreate(JobBase):
 
 
 class AIAnalysisResult(BaseModel):
-    """Schema for AI analysis results."""
+    """Schema for AI analysis results (used when analysis is available)."""
     job_summary: str
     required_skills: List[str]
     resume_skills: List[str]
@@ -33,10 +33,12 @@ class AIAnalysisResult(BaseModel):
 class JobResponse(JobBase):
     """Schema for job application response."""
     id: int
-    ai_analysis: Optional[AIAnalysisResult] = None
+    # Use Optional[dict] so any JSON shape (or null) is accepted safely.
+    # The frontend is responsible for parsing sub-fields from the dict.
+    ai_analysis: Optional[dict] = None
     status: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
