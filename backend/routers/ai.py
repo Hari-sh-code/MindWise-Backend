@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 from database import get_db
-from schemas.job import AIAnalysisResult
+from schemas.job import AIAnalysisResult, JobBase
 from services.resume_extractor import resume_extractor
 from services.ai_agent import ai_agent
 from models.job import JobApplication
@@ -54,7 +54,8 @@ async def analyze_job(
         logger.info("Performing AI analysis...")
         analysis = ai_agent.analyze_job_resume_match(
             job_description=request.job_description,
-            resume_text=resume_text
+            resume_text=resume_text,
+            job_title=request.job_title
         )
         logger.info(f"AI analysis completed with score: {analysis.match_score}")
         

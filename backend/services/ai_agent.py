@@ -23,11 +23,12 @@ class AIAgent:
     def analyze_job_resume_match(
         self,
         job_description: str,
-        resume_text: str
+        resume_text: str,
+        job_title: str
     ) -> AIAnalysisResult:
 
         try:
-            prompt = self._build_analysis_prompt(job_description, resume_text)
+            prompt = self._build_analysis_prompt(job_description, resume_text, job_title)
 
             response = self.client.models.generate_content(
                 model=self.model_name,
@@ -54,12 +55,15 @@ class AIAgent:
             logger.exception("AI analysis failed")
             raise ValueError(f"AI analysis failed: {str(e)}")
 
-    def _build_analysis_prompt(self, job_description: str, resume_text: str) -> str:
+    def _build_analysis_prompt(self, job_description: str, resume_text: str, job_title: str) -> str:
 
         return f"""
-You are an expert ATS analyzer and career advisor.
 
-Analyze the JOB DESCRIPTION and RESUME below and return a STRICT JSON response.
+You are an expert ATS analyzer and {job_title} advisor.
+
+Analyze the JOB DESCRIPTION and RESUME and return STRICT JSON.
+
+---
 
 JOB DESCRIPTION:
 {job_description}
@@ -67,29 +71,57 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 
-Return ONLY valid JSON in this exact schema:
+---
+
+### TASKS:
+
+1. Extract top 6–8 REQUIRED SKILLS from the job description
+   - Focus on specific tools, technologies, and languages only
+
+2. Extract RESUME SKILLS
+   - Only include explicitly mentioned skills
+   - Do NOT infer or assume
+
+3. Identify SKILL GAP
+   - Skills in job description but missing in resume
+
+---
+
+
+### OUTPUT (STRICT JSON ONLY):
 
 {{
-  "job_summary": "2-3 sentence summary of the role",
-  "required_skills": ["skill1", "skill2"],
-  "resume_skills": ["skill1", "skill2"],
-  "skill_gap": ["missing_skill1"],
-  "match_score": 0,
-  "preparation_tips": [
-    "Actionable tip 1",
-    "Actionable tip 2",
-    "Actionable tip 3",
-    "Actionable tip 4",
-    "Actionable tip 5"
-  ]
+"job_summary": "2-3 concise sentences",
+
+"required_skills": [],
+
+"resume_skills": [],
+
+"skill_gap": [],
+
+"match_score": 0,
+
+"preparation_tips": [
+"5 specific technical + HR tips based ONLY on missing skills"
+]
 }}
 
-Rules:
-- JSON ONLY (no markdown, no explanation)
-- match_score must be integer between 0 and 100
-- Be concise and accurate
-- Focus on skills, gaps, and preparation
-- Preparation tips should focus on Techinical HR Interview like what are the key topics should focus (Mentioned in Job Description)
+---
+
+### RULES:
+
+* Return ONLY valid JSON (no markdown, no explanation)
+* match_score must be integer between 0 and 100
+* Limit required_skills to top 6–8 only
+* Avoid duplicates in any list
+* Be concise and precise
+* Focus on relevant and high-impact skills only
+* Do NOT hallucinate skills not present in job description or resume
+* Do not expand a skill into related concepts
+* Each skill must be a single, distinct item
+* Avoid combining concepts with tools
+* List each skill separately (no grouping)
+* Only include explicitly mentioned skills
 
 """
 

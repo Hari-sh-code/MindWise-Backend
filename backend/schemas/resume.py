@@ -1,183 +1,162 @@
 """
-Pydantic schemas for Resume generation features.
+Pydantic schemas for Resume Optimization Engine.
+Handles resume generation, optimization, ATS scoring, and comparison.
 """
-from pydantic import BaseModel, HttpUrl, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
 # ============================================================================
-# Input Schemas
+# REQUEST SCHEMAS
 # ============================================================================
 
-class GenerateResumeRequest(BaseModel):
-    """Request to generate an ATS-optimized resume."""
-    job_id: int = Field(..., description="Job application ID")
+class ResumeGenerateRequest(BaseModel):
+    """Request schema for resume generation."""
+    job_description: str = Field(..., description="Job description to optimize resume for")
+    job_application_id: Optional[int] = Field(None, description="Optional job application ID to link resume")
+
+
+class ResumeUpdateRequest(BaseModel):
+    """Request schema for updating resume data."""
+    resume_data: Dict[str, Any] = Field(..., description="Updated resume data structure")
+
+
+class ResumeComparisonRequest(BaseModel):
+    """Request schema for comparing two resumes."""
+    old_resume_id: int = Field(..., description="ID of older/original resume")
+    new_resume_id: int = Field(..., description="ID of new/optimized resume")
 
 
 # ============================================================================
-# Profile Component Schemas (for aggregated user data)
+# COMPONENT SCHEMAS (for resume_data structure)
 # ============================================================================
 
-class ProfileBasicInfo(BaseModel):
-    """Basic user information for resume."""
-    first_name: str
-    last_name: str
-    email: str
-    phone: Optional[str] = None
-    summary: Optional[str] = None
-    
-    class Config:
-        from_attributes = True
+class ResumeSkill(BaseModel):
+    """Skill component in resume."""
+    name: str
+    level: Optional[str] = None  # e.g., "Expert", "Intermediate", "Beginner"
 
 
-class ProfileSkill(BaseModel):
-    """User skill entry."""
-    skill_name: str
-    skill_type: str
-    
-    class Config:
-        from_attributes = True
-
-
-class ProfileSocialLink(BaseModel):
-    """Social link entry."""
-    platform: str
-    url: str
-    
-    class Config:
-        from_attributes = True
-
-
-class ProfileProject(BaseModel):
-    """User project entry."""
+class ResumeProject(BaseModel):
+    """Project component in resume."""
     title: str
     description: Optional[str] = None
-    tech_stack: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
     github_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
-
-class ProfileExperience(BaseModel):
-    """User work experience entry."""
+class ResumeExperience(BaseModel):
+    """Experience component in resume."""
     company_name: str
     role: str
-    duration: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    is_current: Optional[bool] = None
     description: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
-
-class ProfileEducation(BaseModel):
-    """User education entry."""
+class ResumeEducation(BaseModel):
+    """Education component in resume."""
     college: str
     degree: str
     year: Optional[int] = None
 
-    class Config:
-        from_attributes = True
 
-
-class ProfileCertification(BaseModel):
-    """User certification entry."""
+class ResumeCertification(BaseModel):
+    """Certification component in resume."""
     title: str
     issuer: str
     issue_date: Optional[str] = None
-    credential_id: Optional[str] = None
     credential_url: Optional[str] = None
 
+
+class ResumePersonal(BaseModel):
+    """Personal info section in resume."""
+    first_name: str
+    last_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    summary: Optional[str] = None
+
+
+# ============================================================================
+# RESPONSE SCHEMAS
+# ============================================================================
+
+class ResumeDataResponse(BaseModel):
+    """Complete resume data structure."""
+    personal_info: Optional[ResumePersonal] = None
+    summary: Optional[str] = None
+    skills: Optional[List[ResumeSkill]] = None
+    experience: Optional[List[ResumeExperience]] = None
+    education: Optional[List[ResumeEducation]] = None
+    certifications: Optional[List[ResumeCertification]] = None
+    projects: Optional[List[ResumeProject]] = None
+    social_links: Optional[Dict[str, str]] = None
+
+
+class ResumeResponse(BaseModel):
+    """Full resume response with metadata."""
+    id: int
+    user_id: int
+    job_description: str
+    resume_data: Dict[str, Any]  # Raw resume data structure
+    ats_score: Optional[float] = None
+    version: int
+    created_at: datetime
+    updated_at: datetime
+    job_application_id: Optional[int] = None
+
     class Config:
         from_attributes = True
 
 
-class AggregatedUserProfile(BaseModel):
-    """Complete aggregated user profile for resume generation."""
-    basic_info: ProfileBasicInfo
-    skills: List[ProfileSkill] = []
-    social_links: List[ProfileSocialLink] = []
-    projects: List[ProfileProject] = []
-    experience: List[ProfileExperience] = []
-    education: List[ProfileEducation] = []
-    certifications: List[ProfileCertification] = []
+class ResumeListResponse(BaseModel):
+    """Paginated list of resumes."""
+    resumes: List[ResumeResponse]
+    total: int
+    page: int
+    page_size: int
 
 
 # ============================================================================
-# AI-Generated Resume Schema
+# COMPARISON & ANALYSIS SCHEMAS
 # ============================================================================
 
-class GeneratedProject(BaseModel):
-    """Project section in generated resume."""
-    title: str
-    github_url: Optional[str] = None
-    description: List[str]  # bullet points
+class ATSScoreDifference(BaseModel):
+    """ATS score comparison."""
+    old_score: Optional[float]
+    new_score: Optional[float]
+    improvement: Optional[float] = None  # new - old
+    improvement_percentage: Optional[float] = None
 
 
-class GeneratedExperience(BaseModel):
-    """Experience section in generated resume."""
-    company_name: str
-    role: str
-    duration: Optional[str] = None
-    description: List[str]  # bullet points
-
-
-class GeneratedEducation(BaseModel):
-    """Education section in generated resume."""
-    college: str
-    degree: str
-    year: Optional[int] = None
-
-
-
-class GeneratedCertification(BaseModel):
-    """Certification section in generated resume."""
-    title: str
-    issuer: str
-    issue_date: Optional[str] = None
-
-
-class ATSOptimizedResume(BaseModel):
-    """ATS-optimized resume generated by AI."""
-    summary: str
-    skills: List[str] = []
-    projects: List[GeneratedProject] = []
-    experience: List[GeneratedExperience] = []
-    education: List[GeneratedEducation] = []
-    certifications: List[GeneratedCertification] = []
+class ResumeComparisonResponse(BaseModel):
+    """Comparison between two resume versions."""
+    old_resume_id: int
+    new_resume_id: int
+    old_version: int
+    new_version: int
+    old_ats_score: Optional[float]
+    new_ats_score: Optional[float]
+    ats_improvement: Optional[float] = None  # new - old
+    ats_improvement_percentage: Optional[float] = None
+    created_at: datetime
 
 
 # ============================================================================
-# Response Schemas
+# METADATA & STATUS SCHEMAS
 # ============================================================================
 
-class ResumeGenerationResponse(BaseModel):
-    """Response from resume generation endpoint."""
-    job_id: int
-    company_name: str
-    job_title: str
-    resume: ATSOptimizedResume
-    generated_at: datetime
-    
+class ResumeMetadata(BaseModel):
+    """Resume metadata (without full content)."""
+    id: int
+    user_id: int
+    version: int
+    ats_score: Optional[float]
+    created_at: datetime
+    updated_at: datetime
+
     class Config:
         from_attributes = True
-
-
-class ResumePreviewResponse(BaseModel):
-    """Response for resume preview endpoint."""
-    job_id: int
-    company_name: str
-    job_title: str
-    resume: Optional[ATSOptimizedResume] = None
-    message: str  # e.g., "No resume generated yet"
-    
-    class Config:
-        from_attributes = True
-
-
-class ResumePDFResponse(BaseModel):
-    """Metadata response for PDF download endpoint."""
-    job_id: int
-    status: str
-    message: str
