@@ -17,15 +17,13 @@ FastAPI backend for MindWise, an AI-powered job application decision-support sys
 - **Structured Experience**: Refactored experience tracking from simple strings to structured `start_date` and `end_date` (Date type) with automatic "Present" detection for current roles.
 - **Aggregated Responses**: Provided a `GET /user/profile` endpoint returning the complete professional profile in a single optimized payload.
 
-### Resume Optimization System (NEW)
-- **Rule-Based Generation**: Generates ATS-optimized resumes without AI dependency.
-- **Keyword Extraction**: Smart keyword extraction from job descriptions with stop-word filtering and deduplication.
-- **Relevance Scoring**: Scores skills, projects, and experience based on job keyword matches; filters and reorders content by relevance.
-- **ATS Score Calculation**: Composite scoring formula (35% skill match + 40% keyword coverage + 25% structure completeness).
-- **AI-Optional Enhancement**: Optional Gemini API enhancement for suggestions; non-blocking if unavailable.
-- **Versioning**: Automatic version tracking per user for resume history and comparison.
-- **Resume Comparison**: Compare old vs new resumes with detailed improvement metrics (ATS score improvement, keyword coverage improvement, specific improvements list).
-- **Editable Preview**: Full edit support for resume content before finalization.
+### Instant Resume Module (Implemented)
+- **AI-Driven Generation**: Builds a resume from the user profile and the target job description with Gemini as the primary generator.
+- **Graceful Fallback**: Returns a structured profile-based resume when AI parsing fails or the model response is invalid.
+- **ATS Scoring**: Reuses the existing AI analysis path to estimate ATS match score from the generated resume JSON.
+- **Versioning**: Automatically increments the resume version per user so each generation is tracked historically.
+- **Resume Management**: Supports list, fetch, update, compare, and download flows for stored resumes.
+- **PDF Export**: Generates a downloadable PDF on demand from the stored resume JSON.
 
 ### Recent refactors and cleanup
 - **Notes Module Removal**: Removed the `Notes` module and `user_notes` fields from job models and schemas for a leaner architecture.
@@ -143,11 +141,12 @@ App URLs:
 - `POST /user/{section}`: Generic pattern for adding profile components.
 
 ### Resume Optimization
-- `POST /resume/generate`: Generate ATS-optimized resume for a job description (rule-based, AI-optional).
-- `GET /resume/`: List all user resumes (paginated).
-- `GET /resume/{id}`: Get single resume with full details.
-- `PUT /resume/{id}`: Update resume content (editable preview).
-- `POST /resume/compare`: Compare two resume versions with improvement metrics.
+- `POST /resume/generate`: Generate a tailored resume for a job description using the authenticated user's profile.
+- `GET /resume/`: List all user resumes with pagination.
+- `GET /resume/{id}`: Get a single resume with full details.
+- `PUT /resume/{id}`: Update stored resume JSON for editable preview flows.
+- `POST /resume/compare`: Compare two resume versions by ATS score.
+- `GET /resume/{id}/download`: Download the stored resume as a PDF.
 
 ### AI and Job Flows
 - `POST /ai/analyze-job`: Analyze Match between a Google Drive resume and a job description.
@@ -165,9 +164,9 @@ App URLs:
 - Restrict `ALLOWED_ORIGINS` in production.
 
 ## Known Codebase Notes
-- **Resume Engine**: Production-ready Resume Optimization Engine with rule-based generation (AI-optional).
-  - Keyword extraction, relevance scoring, ATS calculation, versioning, and comparison.
-  - Located in `models/resume.py`, `schemas/resume.py`, `services/resume_service.py`, `routers/resume.py`.
+- **Instant Resume Engine**: Current resume module is AI-driven with a profile-based fallback.
+  - Handles generation, ATS scoring, versioning, update, comparison, and PDF export.
+  - Located in `models/resume.py`, `schemas/resume.py`, `services/resume_service.py`, `routers/resume.py`, `services/pdf_service.py`.
 - `services/job_extractor.py` handles manual text processing for `job_description`.
 - **AI Integration**: Optional AI enhancements via Google Gemini (`google-genai`) for interview improvement plans and resume suggestions. Non-blocking if unavailable.
 

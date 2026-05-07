@@ -71,7 +71,7 @@ class PDFService:
                 font-family: 'Inter', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
                 color: #111;
                 background-color: #fff;
-                page-break-inside: avoid;
+                page-break-inside: auto;
             }}
             
             /* DYNAMIC FONTS & SPACING INJECTED HERE */
@@ -126,7 +126,7 @@ class PDFService:
             
             /* Sections */
             .section {{
-                page-break-inside: avoid;
+                page-break-inside: auto;
             }}
             
             .section-title {{
@@ -143,7 +143,7 @@ class PDFService:
             /* Experience / Projects / Education */
             .item {{
                 margin-bottom: 4px;
-                page-break-inside: avoid;
+                page-break-inside: auto;
             }}
             
             .item-header {{
@@ -203,8 +203,27 @@ class PDFService:
             
             .col:last-child {{
                 float: right;
+            }}            
+            /* Descriptions and text wrapping */
+            ul {{
+                margin-top: 4px;
+                margin-bottom: 8px;
+                padding-left: 12px;
             }}
             
+            ul li {{
+                margin-bottom: 3px;
+                white-space: pre-line;
+                word-break: break-word;
+                overflow-wrap: break-word;
+            }}
+            
+            .description {{
+                white-space: pre-line;
+                word-break: break-word;
+                overflow-wrap: break-word;
+                margin: 2px 0;
+            }}            
             /* Print optimizations */
             @media print {{
                 body {{
@@ -233,12 +252,12 @@ class PDFService:
             
             <!-- Projects -->
             {projects_section}
-            
-            <!-- Education & Certifications -->
+
             <div class="columns">
                 <div class="col">{education_section}</div>
                 <div class="col">{certifications_section}</div>
             </div>
+            
         </div>
     </body>
     </html>
@@ -388,18 +407,28 @@ class PDFService:
         phone = self.clean_text(personal_info.get("phone"))
         if phone:
             contact_items.append(f'<a href="tel:{phone}">{phone}</a>')
-             
-        if social_links:
-            linkedin = self.clean_text(social_links.get("linkedin"))
-            if linkedin:
-                display = linkedin.replace("https://", "").replace("www.", "").strip("/")
-                contact_items.append(f'<a href="{linkedin}">{display}</a>')
-                
-            github = self.clean_text(social_links.get("github"))
-            if github:
-                display = github.replace("https://", "").replace("www.", "").strip("/")
-                contact_items.append(f'<a href="{github}">{display}</a>')
-                
+        
+        if social_links and isinstance(social_links, dict):
+            # Priority order for display
+            priority = ["linkedin", "github", "portfolio", "leetcode", "hackerrank"]
+            shown = set()
+            
+            # Show priority platforms first
+            for platform in priority:
+                url = self.clean_text(social_links.get(platform))
+                if url:
+                    display = url.replace("https://", "").replace("http://", "").replace("www.", "").rstrip("/")
+                    contact_items.append(f'<a href="{url}">{display}</a>')
+                    shown.add(platform)
+            
+            # Show any remaining platforms not in priority list
+            for platform, url in social_links.items():
+                if platform not in shown:
+                    url = self.clean_text(url)
+                    if url:
+                        display = url.replace("https://", "").replace("http://", "").replace("www.", "").rstrip("/")
+                        contact_items.append(f'<a href="{url}">{display}</a>')
+                    
         return " | ".join(contact_items)
     
     def _build_summary_section(self, summary: str, layout: Dict[str, Any]) -> str:
@@ -411,30 +440,27 @@ class PDFService:
             return ""
         return f'''
         <div class="section">
-            <div class="section-title">Summary</div>
+            <div class="section-title">Professional Summary</div>
             <div>{summary_text}</div>
         </div>
         '''
     
-    def _build_skills_section(self, skills: list) -> str:
+    def _build_skills_section(self, skills: dict) -> str:
         if not skills:
             return ""
-        skills_list = []
-        for skill in skills:
-            if isinstance(skill, dict):
-                skill_name = self.clean_text(skill.get("name"))
-            else:
-                skill_name = self.clean_text(skill)
-            if skill_name:
-                skills_list.append(skill_name)
-        
-        if not skills_list:
-            return ""
-        skills_text = ", ".join(skills_list)
+
+        html = ""
+
+        for category, items in skills.items():
+            if not items:
+                continue
+
+            html += f"<div><strong>{category}:</strong> {', '.join(items)}</div>"
+
         return f'''
         <div class="section">
             <div class="section-title">Skills</div>
-            <div>{skills_text}</div>
+            {html}
         </div>
         '''
     
@@ -452,17 +478,16 @@ class PDFService:
             end = "Present" if job.get("is_current") else self.clean_text(job.get("end_date"))
             if end and len(end) >= 7 and end != "Present": end = end[:7]
             date_str = f"{start} - {end}" if start and end else (start or end)
-            
-            desc = self.clean_text(job.get("description"))
-            bullets = [b.strip().strip('-*• ') for b in desc.split('\\n') if b.strip()]
+                        
+            desc = job.get("description") or ""
+            bullets = [self.clean_text(b).strip('-*• ') for b in desc.split('\n') if b.strip()]
             bullets = bullets[:3]  # Dynamic allowance capped gracefully 
             
             bullets_html = ""
             if bullets:
                 bullets_html = '<ul class="bullets">'
                 for b in bullets:
-                    # layout['trim'] is strictly implemented per user directives 
-                    bullet_text = self.smart_trim(b, layout["trim"])
+                    bullet_text = self.smart_trim(b, layout["trim"] * 2)
                     bullets_html += f"<li>{bullet_text}</li>"
                 bullets_html += '</ul>'
             
@@ -502,22 +527,32 @@ class PDFService:
                     tech_text = ", ".join(tech_list[:4])
                 else:
                     tech_text = self.clean_text(tech_stack)
-            
-            desc = self.clean_text(project.get("description"))
-            bullets = [b.strip().strip('-*• ') for b in desc.split('\\n') if b.strip()]
+                    
+            desc = project.get("description") or ""
+            bullets = [self.clean_text(b).strip('-*• ') for b in desc.split('\n') if b.strip()]
             
             bullets_html = ""
             if bullets:
-                # Apply dynamic layout trimming scaling proportionally 
-                bullet_text = self.smart_trim(bullets[0] if bullets else desc, layout["trim"] * 2)
-                bullets_html = f'<ul class="bullets"><li>{bullet_text}</li></ul>'
+                bullets_html = '<ul class="bullets">'
+                for b in bullets[:3]:
+                    bullet_text = self.smart_trim(b, layout["trim"] * 2)
+                    bullets_html += f"<li>{bullet_text}</li>"
+                bullets_html += '</ul>'
             
             tech_line = f'<div class="company" style="margin-bottom: 2px;">Technologies: {tech_text}</div>' if tech_text else ''
             
+            github_url = self.clean_text(project.get("github_url") or "")
+            title_html = (
+                f'<a href="{github_url}" style="color:#111;text-decoration:none;">'
+                f'<span class="item-title">{title}</span></a>'
+                if github_url
+                else f'<span class="item-title">{title}</span>'
+            )
+
             proj_html = f'''
             <div class="item">
                 <div class="item-header">
-                    <div><span class="item-title">{title}</span></div>
+                    <div>{title_html}</div>
                 </div>
                 {tech_line}
                 {bullets_html}
@@ -562,23 +597,30 @@ class PDFService:
     def _build_certifications_section(self, certifications: list) -> str:
         if not certifications:
             return ""
-        certifications = certifications[:4]  # Enforce hard limits conservatively 
+        certifications = certifications[:5]  # Allow up to 5 certifications
         certs_html = []
         for cert in certifications:
             if isinstance(cert, dict):
                 title = self.clean_text(cert.get("title"))
                 issuer = self.clean_text(cert.get("issuer", ""))
+                issue_date = self.clean_text(cert.get("issue_date", ""))
             else:
                 title = self.clean_text(cert)
                 issuer = ""
+                issue_date = ""
+            
             if not title:
                 continue
+            
+            date_line = f'<div class="company" style="font-size: 11px;">{issue_date}</div>' if issue_date else ''
+            
             item_html = f'''
             <div class="item">
                 <div class="item-header">
                     <div><span class="item-title">{title}</span></div>
                 </div>
-                <div class="company" style="font-size: 12px;">{issuer}</div>
+                {f'<div class="company" style="font-size: 12px;">{issuer}</div>' if issuer else ''}
+                {date_line}
             </div>
             '''
             certs_html.append(item_html)
